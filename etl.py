@@ -3,6 +3,7 @@ import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, col
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dayofweek, monotonically_increasing_id
+from pyspark.sql.types import IntegerType, StringType, DoubleType
 
 
 config = configparser.ConfigParser()
@@ -21,15 +22,6 @@ def create_spark_session():
 
 
 def process_song_data(spark, input_data, output_data):
-    """
-    Description: This function loads song_data from S3 and processes it then load back the results to S3
-
-    Parameters:
-            spark       : Spark Session
-            input_data  : location of song_data json files with the songs metadata
-            output_data : S3 bucket were dimensional tables in parquet format will be stored
-    """
-
     # get filepath to song data file
     song_data ="{input_data}song-data/*/*/*/*.json".format(input_data=input_data)
 
@@ -37,6 +29,16 @@ def process_song_data(spark, input_data, output_data):
     df = spark.read.json(song_data).dropDuplicates().cache()
 
     df.createOrReplaceTempView('song_df_table')
+
+    df = df.withColumn("song_id", df["song_id"].cast(StringType()))
+    df = df.withColumn("title", df["title"].cast(StringType()))
+    df = df.withColumn("artist_id", df["artist_id"].cast(StringType()))
+    df = df.withColumn("year", df["year"].cast(IntegerType()))
+    df = df.withColumn("duration", df["duration"].cast(DoubleType()))
+    df = df.withColumn("artist_name", df["artist_name"].cast(StringType()))
+    df = df.withColumn("artist_location", df["artist_location"].cast(StringType()))
+    df = df.withColumn("artist_latitude", df["artist_latitude"].cast(DoubleType()))
+    df = df.withColumn("artist_longitude", df["artist_longitude"].cast(DoubleType()))
 
     # extract columns to create songs table
     songs_table = df.select(
@@ -67,15 +69,6 @@ def process_song_data(spark, input_data, output_data):
 
 
 def process_log_data(spark, input_data, output_data):
-    """
-    Description: This function loads log-data from S3 and processes it then load back the results to S3
-
-    Parameters:
-            spark       : Spark Session
-            input_data  : location of song_data json files with the songs metadata
-            output_data : S3 bucket were dimensional tables in parquet format will be stored
-    """
-
     # get filepath to log data file
     log_data ="{input_data}log-data/*events.json".format(input_data=input_data)
 
